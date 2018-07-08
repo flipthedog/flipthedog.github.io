@@ -1,5 +1,5 @@
-document.write(Date());
-document.getElementById("variable").innerText = "Hello JS!";
+// document.write(Date());
+// document.getElementById("variable").innerText = "Hello JS!";
 
 var canvas = document.getElementById("snekCanvas");
 var ctx =  canvas.getContext();
