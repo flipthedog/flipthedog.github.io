@@ -2,6 +2,8 @@
 var canvas = document.getElementById("snekCanvas");
 var ctx =  canvas.getContext("2d");
 
+exitVar = false;
+
 // Canvas dimensions
 var canvasHeight = parseInt(canvas.getAttribute('width'));
 var canvasWidth = parseInt(canvas.getAttribute('height'));
@@ -24,11 +26,37 @@ var newCanvasHeight = ((cellGap ) * (heightNumber + 1)) + heightNumber * cellHei
 canvas.setAttribute('width', newCanvasWidth );
 canvas.setAttribute('height', newCanvasHeight);
 
+document.addEventListener("keydown", function(event){
+    if(event.keyCode == 13) {
+        // ENTER
+        exit();
+    } else if (event.keyCode == 37) {
+        // LEFT ARROW
+        // console.log("left");
+        snek.vx = -1;
+        snek.vy = 0;
+    } else if (event.keyCode == 38) {
+        // UP ARROW
+        // console.log("up");
+        snek.vx = 0;
+        snek.vy = -1;
+    } else if (event.keyCode == 39) {
+        // RIGHT ARROW
+        // console.log("right");
+        snek.vx = 1;
+        snek.vy = 0;
+    } else if (event.keyCode == 40) {
+        // DOWN ARROW
+        // console.log("down");
+        snek.vx = 0;
+        snek.vy = 1;
+    }
+});
+
 var cellStorage = new Array(heightNumber);
 for (var i =0; i < widthNumber; i++) {
     cellStorage[i] = new Array(widthNumber);
 }
-
 
 console.log("This is the new canvas height: " + newCanvasHeight);
 console.log("This is the new canvas width: " + newCanvasWidth);
@@ -43,12 +71,16 @@ function Cell(x, y) {
     this.y = y;
 }
 
-// Create the background
-createCells();
-draw();
-function createCells() {
+function Snake(x, y) {
+    this.x = x;
+    this.y = y;
+    this.vx = 1;
+    this.vy = 0;
+}
 
+function init() {
 
+    dead = false;
 
     for (var j = 0; j < heightNumber ; j++) {
 
@@ -59,10 +91,23 @@ function createCells() {
         }
 
     }
+    randX = Math.floor(Math.random() * (widthNumber / 4));
+    randY = Math.floor(Math.random() * (heightNumber / 4));
+    console.log("Random: " + randX + ", " + randY);
+    randomCell = cellStorage[randX][randY];
+
+    snek = new Snake(randomCell.x,randomCell.y);
+
 }
 
 function draw() {
     drawBackground();
+    drawSnake();
+}
+
+function drawSnake() {
+    ctx.fillStyle = '#ff0000';
+    ctx.fillRect(snek.x,snek.y,cellWidth, cellHeight);
 }
 
 function drawBackground() {
@@ -73,6 +118,10 @@ function drawBackground() {
     // Cell color
     ctx.fillStyle = '#070599';
 
+    if (dead){
+        ctx.fillStyle = "#ff0000";
+    }
+
     for (var j = 0; j < heightNumber; j++) {
 
         for (var i = 0; i < widthNumber; i++) {
@@ -82,4 +131,34 @@ function drawBackground() {
         }
 
     }
+}
+
+// Create the background
+init();
+draw();
+
+var intervalID = setInterval(loop,200);
+
+// Exit the game loop
+function exit() {
+    clearInterval(intervalID);
+}
+
+function update(){
+    snek.x = snek.x + (snek.vx) * (cellGap + cellWidth);
+    snek.y = snek.y + (snek.vy) * (cellGap + cellHeight);
+}
+
+function checkIfDead() {
+    if (snek.x < 0 || snek.y < 0 || snek.x > newCanvasWidth || snek.y > newCanvasHeight) {
+        document.getElementById('status').innerHTML = "You ded.";
+        dead = true;
+        alert("You ded!")
+        exit();
+    }
+}
+function loop() {
+    checkIfDead();
+    draw();
+    update();
 }
