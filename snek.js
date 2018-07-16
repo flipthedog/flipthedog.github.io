@@ -26,6 +26,9 @@ var newCanvasHeight = ((cellGap ) * (heightNumber + 1)) + heightNumber * cellHei
 canvas.setAttribute('width', newCanvasWidth );
 canvas.setAttribute('height', newCanvasHeight);
 
+var hasApple = false;
+var appleCell = null;
+
 document.addEventListener("keydown", function(event){
     if(event.keyCode == 13) {
         // ENTER
@@ -33,23 +36,31 @@ document.addEventListener("keydown", function(event){
     } else if (event.keyCode == 37) {
         // LEFT ARROW
         // console.log("left");
-        snek.vx = -1;
-        snek.vy = 0;
+        if (snek.vx != 1) {
+            snek.vx = -1;
+            snek.vy = 0;
+        }
     } else if (event.keyCode == 38) {
         // UP ARROW
         // console.log("up");
-        snek.vx = 0;
-        snek.vy = -1;
+        if (snek.vy != 1) {
+            snek.vx = 0;
+            snek.vy = -1;
+        }
     } else if (event.keyCode == 39) {
         // RIGHT ARROW
         // console.log("right");
-        snek.vx = 1;
-        snek.vy = 0;
+        if (snek.vx != -1) {
+            snek.vx = 1;
+            snek.vy = 0;
+        }
     } else if (event.keyCode == 40) {
         // DOWN ARROW
         // console.log("down");
-        snek.vx = 0;
-        snek.vy = 1;
+        if (snek.vy != 1) {
+            snek.vx = 0;
+            snek.vy = 1;
+        }
     }
 });
 
@@ -69,6 +80,7 @@ console.log(cellHeight);
 function Cell(x, y) {
     this.x = x;
     this.y = y;
+    this.containsApple = false;
 }
 
 function Snake(x, y) {
@@ -76,6 +88,8 @@ function Snake(x, y) {
     this.y = y;
     this.vx = 1;
     this.vy = 0;
+    this.previousPositions = new Array();
+    this.snakeLength = 1;
 }
 
 function init() {
@@ -88,6 +102,7 @@ function init() {
 
             cell = new Cell((cellWidth * i) + cellGap  * (i + 1), (cellHeight * j) + cellGap * (j+ 1))
             cellStorage[i][j] = cell;
+
         }
 
     }
@@ -97,7 +112,6 @@ function init() {
     randomCell = cellStorage[randX][randY];
 
     snek = new Snake(randomCell.x,randomCell.y);
-
 }
 
 function draw() {
@@ -107,7 +121,17 @@ function draw() {
 
 function drawSnake() {
     ctx.fillStyle = '#ff0000';
-    ctx.fillRect(snek.x,snek.y,cellWidth, cellHeight);
+    ctx.fillRect(snek.x, snek.y, cellWidth, cellHeight);
+
+    for (i = 1; i < snek.snakeLength; i++) {
+        if (snek.previousPositions[i] != null) {
+            ctx.fillRect(snek.previousPositions[i].x, snek.previousPositions[i].y, cellWidth, cellHeight);
+        }
+    }
+
+    if (snek.previousPositions.length > snek.snakeLength) {
+        snek.previousPositions.shift();
+    }
 }
 
 function drawBackground() {
@@ -118,26 +142,30 @@ function drawBackground() {
     // Cell color
     ctx.fillStyle = '#070599';
 
-    if (dead){
-        ctx.fillStyle = "#ff0000";
-    }
+
 
     for (var j = 0; j < heightNumber; j++) {
 
         for (var i = 0; i < widthNumber; i++) {
             cell2 = cellStorage[i][j];
             // console.log("This is the cell2 coords: " + cell2.x + ", " + cell2.y);
+            if (dead){
+                ctx.fillStyle = "#ff0000";
+            }
             ctx.fillRect(cell2.x, cell2.y , cellWidth, cellHeight);
+            if (cell2.containsApple ) {
+                ctx.fillStyle = "#12ff00";
+                var appleWidth = cellWidth / 4;
+                var appleHeight = cellHeight / 4;
+
+                ctx.fillRect(cell2.x + cellWidth / 2 - appleWidth / 2,cell2.y + cellHeight / 2 - appleHeight / 2, appleWidth, appleHeight);
+                ctx.fillStyle = '#070599';
+            }
         }
 
     }
 }
 
-// Create the background
-init();
-draw();
-
-var intervalID = setInterval(loop,200);
 
 // Exit the game loop
 function exit() {
@@ -145,20 +173,63 @@ function exit() {
 }
 
 function update(){
+
     snek.x = snek.x + (snek.vx) * (cellGap + cellWidth);
     snek.y = snek.y + (snek.vy) * (cellGap + cellHeight);
+
+    if (appleCell != null) {
+        if (snek.x == appleCell.x && snek.y == appleCell.y) {
+            currentScore = parseInt(document.getElementById('score').innerHTML) + 1;
+            document.getElementById('score').innerHTML = currentScore.toString();
+            appleCell.containsApple = false;
+            snek.snakeLength++;
+            hasApple = false;
+        }
+    }
+    createNewApple();
+    checkIfDead();
+    snek2 = new Snake(snek.x,snek.y);
+    snek.previousPositions.push(snek2);
+
+
 }
 
 function checkIfDead() {
-    if (snek.x < 0 || snek.y < 0 || snek.x > newCanvasWidth || snek.y > newCanvasHeight) {
-        document.getElementById('status').innerHTML = "You ded.";
-        dead = true;
-        alert("You ded!")
-        exit();
+    for (var i = 1; i < snek.previousPositions.length; i++){
+        prevPose = snek.previousPositions[i];
+        if(snek.x == prevPose.x && snek.y == prevPose.y){
+            deads();
+        }
+    }
+    if (snek.x < 0 || snek.y < 0 || snek.x >= newCanvasWidth || snek.y >= newCanvasHeight) {
+        deads();
+    }
+}
+
+function deads(){
+    document.getElementById('status').innerHTML = "You ded.";
+    dead = true;
+    alert("You ded!");
+    exit();
+}
+
+function createNewApple() {
+    if (!hasApple) {
+        hasApple = true;
+        randX = Math.floor(Math.random() * (widthNumber));
+        randY = Math.floor(Math.random() * (heightNumber));
+        randomAppleCell = cellStorage[randX][randY];
+        randomAppleCell.containsApple = true;
+        appleCell = randomAppleCell;
     }
 }
 function loop() {
-    checkIfDead();
-    draw();
     update();
+    draw();
 }
+
+// Create the background
+init();
+draw();
+
+var intervalID = setInterval(loop,200);
