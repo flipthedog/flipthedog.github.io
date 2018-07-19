@@ -1,15 +1,19 @@
+// Snek.js
+// Controls the snek game
+// Definitely not snake...
+
+// Game variables
+var exitVar = false;
+var hasApple = false;
+var appleCell = null;
+
 // Canvas objects
 var canvas = document.getElementById("snekCanvas");
 var ctx =  canvas.getContext("2d");
 
-exitVar = false;
-
 // Canvas dimensions
 var canvasHeight = parseInt(canvas.getAttribute('width'));
 var canvasWidth = parseInt(canvas.getAttribute('height'));
-
-console.log("This is the canvas height: " + canvasHeight);
-console.log("This is the canvas width: " + canvasWidth);
 
 // Number of cells
 var widthNumber = 15;
@@ -20,69 +24,66 @@ var cellGap = 3;
 var cellWidth = parseInt((canvasWidth - ((widthNumber + 1 ) * cellGap)) / (widthNumber));
 var cellHeight = parseInt((canvasHeight - ((heightNumber + 1) * cellGap)) / (heightNumber));
 
+// Reset the canvas height to match whole integer pixels
+// avoids ugly gaps
 var newCanvasWidth =  ((cellGap ) * (widthNumber + 1)) + widthNumber * cellWidth;
 var newCanvasHeight = ((cellGap ) * (heightNumber + 1)) + heightNumber * cellHeight;
-
 canvas.setAttribute('width', newCanvasWidth );
 canvas.setAttribute('height', newCanvasHeight);
 
-var hasApple = false;
-var appleCell = null;
-
+// Game event handling
 document.addEventListener("keydown", function(event){
-    if(event.keyCode == 13) {
+    if(event.keyCode === 13) {
         // ENTER
+        // Exit Key
+        deads();
+        draw();
         exit();
-    } else if (event.keyCode == 37) {
+    } else if (event.keyCode === 37) {
         // LEFT ARROW
         // console.log("left");
-        if (snek.vx != 1) {
+        if (snek.previousDir[0] !== 1) {
             snek.vx = -1;
             snek.vy = 0;
         }
-    } else if (event.keyCode == 38) {
+    } else if (event.keyCode === 38) {
         // UP ARROW
         // console.log("up");
-        if (snek.vy != 1) {
+        if (snek.previousDir[1] !== 1) {
             snek.vx = 0;
             snek.vy = -1;
         }
-    } else if (event.keyCode == 39) {
+    } else if (event.keyCode === 39) {
         // RIGHT ARROW
         // console.log("right");
-        if (snek.vx != -1) {
+        if (snek.previousDir[0] !== -1) {
             snek.vx = 1;
             snek.vy = 0;
         }
-    } else if (event.keyCode == 40) {
+    } else if (event.keyCode === 40) {
         // DOWN ARROW
         // console.log("down");
-        if (snek.vy != 1) {
+        if (snek.previousDir[1] !== -1) {
             snek.vx = 0;
             snek.vy = 1;
         }
     }
 });
 
+// Cell storage 2D array
 var cellStorage = new Array(heightNumber);
 for (var i =0; i < widthNumber; i++) {
     cellStorage[i] = new Array(widthNumber);
 }
 
-console.log("This is the new canvas height: " + newCanvasHeight);
-console.log("This is the new canvas width: " + newCanvasWidth);
-
-console.log(cellWidth);
-console.log(cellHeight);
-
-// ctx.fillRect(0, 0, cellWidth, cellHeight);
-
+// Cell Object
 function Cell(x, y) {
     this.x = x;
     this.y = y;
     this.containsApple = false;
 }
 
+// Snake Object
 function Snake(x, y) {
     this.x = x;
     this.y = y;
@@ -90,12 +91,16 @@ function Snake(x, y) {
     this.vy = 0;
     this.previousPositions = new Array();
     this.snakeLength = 1;
+    this.previousDir = [0,0];
 }
 
+// Initialize the game
 function init() {
 
+    // The player is not dead
     dead = false;
 
+    // Create the cells
     for (var j = 0; j < heightNumber ; j++) {
 
         for (var i = 0; i < widthNumber ; i++) {
@@ -106,34 +111,41 @@ function init() {
         }
 
     }
+
+    // Find and retrieve the starting cell
     randX = Math.floor(Math.random() * (widthNumber / 4));
     randY = Math.floor(Math.random() * (heightNumber / 4));
-    console.log("Random: " + randX + ", " + randY);
     randomCell = cellStorage[randX][randY];
 
+    // Create a new snake at the starting cell
     snek = new Snake(randomCell.x,randomCell.y);
 }
 
+// Draw function to call more drawing functions
 function draw() {
     drawBackground();
     drawSnake();
 }
 
+// Draw the snek on the canvas
 function drawSnake() {
     ctx.fillStyle = '#ff0000';
     ctx.fillRect(snek.x, snek.y, cellWidth, cellHeight);
 
+    // Draw the previous snake positions
     for (i = 1; i < snek.snakeLength; i++) {
         if (snek.previousPositions[i] != null) {
             ctx.fillRect(snek.previousPositions[i].x, snek.previousPositions[i].y, cellWidth, cellHeight);
         }
     }
 
+    // If the snake is too long, remove the last stored cell
     if (snek.previousPositions.length > snek.snakeLength) {
         snek.previousPositions.shift();
     }
 }
 
+// Draw the background of cells on the canvas
 function drawBackground() {
     // Create the black background
     ctx.fillStyle = '#00000e';
@@ -142,8 +154,7 @@ function drawBackground() {
     // Cell color
     ctx.fillStyle = '#070599';
 
-
-
+    // Draw the cells
     for (var j = 0; j < heightNumber; j++) {
 
         for (var i = 0; i < widthNumber; i++) {
@@ -172,11 +183,30 @@ function exit() {
     clearInterval(intervalID);
 }
 
+// Game update
 function update(){
 
+    // Update the snake position
     snek.x = snek.x + (snek.vx) * (cellGap + cellWidth);
     snek.y = snek.y + (snek.vy) * (cellGap + cellHeight);
 
+    // Update the snake previousDir
+    // Avoids snake control bugs
+    if(snek.vx === 0 && snek.vy == 1) {
+        // Down
+        snek.previousDir = [0,1]
+    } else if(snek.vx === 0 && snek.vy == -1) {
+        // Up
+        snek.previousDir = [0,-1]
+    } else if(snek.vx === -1 && snek.vy == 0) {
+        // Left
+        snek.previousDir = [-1,0]
+    } else if(snek.vx === 1 && snek.vy == 0) {
+        // Right
+        snek.previousDir = [1,0]
+    }
+
+    // Check if the snek is currently at an apple
     if (appleCell != null) {
         if (snek.x == appleCell.x && snek.y == appleCell.y) {
             currentScore = parseInt(document.getElementById('score').innerHTML) + 1;
@@ -186,36 +216,47 @@ function update(){
             hasApple = false;
         }
     }
+
+    // Check if a new apple needs to be made
     createNewApple();
+
+    // Check if the game needs to end
     checkIfDead();
+
+    // Push the previous snake position to storage
     snek2 = new Snake(snek.x,snek.y);
     snek.previousPositions.push(snek2);
-
-
 }
 
+// Function to check snake ending conditions
 function checkIfDead() {
+    // Check if the current snake position lines up with one of the previous positions
     for (var i = 1; i < snek.previousPositions.length; i++){
         prevPose = snek.previousPositions[i];
         if(snek.x == prevPose.x && snek.y == prevPose.y){
             deads();
         }
     }
+
+    // Check that the snake is not outside the boundary
     if (snek.x < 0 || snek.y < 0 || snek.x >= newCanvasWidth || snek.y >= newCanvasHeight) {
         deads();
     }
 }
 
+// Game enters the dead state
 function deads(){
     document.getElementById('status').innerHTML = "You ded.";
     dead = true;
-    alert("You ded!");
+    //alert("You ded!");
     exit();
 }
 
+// Create a new apple on screen for the snake to eat
 function createNewApple() {
     if (!hasApple) {
         hasApple = true;
+        // Find a new location for the apple
         randX = Math.floor(Math.random() * (widthNumber));
         randY = Math.floor(Math.random() * (heightNumber));
         randomAppleCell = cellStorage[randX][randY];
@@ -223,6 +264,8 @@ function createNewApple() {
         appleCell = randomAppleCell;
     }
 }
+
+// Main game loop
 function loop() {
     update();
     draw();
@@ -232,4 +275,6 @@ function loop() {
 init();
 draw();
 
+// Loop interval, game speed
+// in this case 200ms
 var intervalID = setInterval(loop,200);
