@@ -53,16 +53,29 @@ canvas.setAttribute('height', totalCanvasHeight);
 
 ////////////// GAME Variables /////////////////////////
 var dead = false;
+var hasApple = false;
+var appleCell = null;
 
 var boardUp = 0;
 var boardLeft = 0;
 
+var continueVar = false;
+
+// Cell storage 2D array
+var cellStorage = new Array(heightNumber);
+for (var i = 0; i < widthNumber; i++) {
+    cellStorage[i] = new Array(widthNumber);
+}
+
+/////////// CONTROL //////////
 // Game event handling
 document.addEventListener("keydown", function(event){
     if(event.keyCode === 13) {
         // ENTER
         // Exit Key
-        deads();
+        //continueVar = true;
+
+        deadSequence();
         draw();
         exit();
     } else if (event.keyCode === 37) {
@@ -96,12 +109,7 @@ document.addEventListener("keydown", function(event){
     }
 });
 
-// Cell storage 2D array
-var cellStorage = new Array(heightNumber);
-for (var i = 0; i < widthNumber; i++) {
-    cellStorage[i] = new Array(widthNumber);
-}
-
+//////////// GAME OBJECTS ///////////
 function Cell(xRel, yRel) {
     // Cell position relative to the (0,0) cell
     this.x = xRel;
@@ -110,6 +118,7 @@ function Cell(xRel, yRel) {
 }
 
 function Snake() {
+    console.log("Hi")
     this.vx = 1;
     this.vy = 0;
     this.previousPositions = new Array();
@@ -132,7 +141,8 @@ function init() {
 }
 
 function draw() {
-    drawBackground()
+    drawBackground();
+    drawSnake();
 }
 
 function drawBackground() {
@@ -142,30 +152,119 @@ function drawBackground() {
     ctx.fillStyle = '#000000';
     ctx.fillRect(canvasXOrigin + boardLeft, canvasYOrigin +boardUp, newCanvasWidth, newCanvasHeight)
 
-    ctx.fillStyle = '#070599';
-
     for (var i = 0; i < heightNumber; i ++) {
 
         for (var j = 0; j < widthNumber; j++) {
+
+            ctx.fillStyle = '#070599';
+
+            if (dead) {
+                ctx.fillStyle = '#ff0000';
+            }
+
             cell = cellStorage[i][j];
             ctx.fillRect(canvasXOrigin + cell.x + boardLeft, canvasYOrigin + cell.y + boardUp, cellWidth, cellHeight);
+
+            if (cell.containsApple) {
+                ctx.fillStyle = '#38ff0e';
+                ctx.fillRect(canvasXOrigin + cell.x + boardLeft + cellWidth / 2 - (cellWidth / 8), canvasYOrigin + cell.y + boardUp + cellHeight / 2 - (cellWidth / 8), cellWidth / 4, cellHeight / 4);
+            }
+
         }
 
     }
 
+}
+
+function drawSnake() {
+
+    if(snek.previousPositions.length >= snek.snakeLength) {
+        snek.previousPositions.shift();
+    }
+
     ctx.fillStyle = '#FF0000';
-    ctx.fillRect(totalCanvasWidth / 2 - cellWidth / 2, totalCanvasHeight / 2 - cellHeight / 2, cellWidth, cellHeight);
+    xCenter = totalCanvasWidth / 2 - cellWidth / 2;
+    yCenter = totalCanvasHeight / 2 - cellHeight / 2;
+
+    ctx.fillRect(xCenter, yCenter, cellWidth, cellHeight);
+
+    for(var i = 0; i < snek.previousPositions.length; i++){
+        ctx.fillRect(xCenter + snek.previousPositions[i][0], yCenter + snek.previousPositions[i][1], cellWidth, cellHeight);
+    }
+
 
 }
 
 function update() {
-    boardLeft = boardLeft - (snek.vx) * (cellGap + cellWidth);
-    boardUp = boardUp - (snek.vy) * (cellGap + cellHeight);
+    createApple();
+    checkIfDead();
+
+    magX = cellGap + cellWidth;
+    magY = cellGap + cellHeight;
+
+    boardLeft = boardLeft + (snek.vx) * (magX);
+    boardUp = boardUp + (snek.vy) * (magY);
+
+    snek.previousPositions.push([0, 0]);
+
+    appleX = appleCell.x - (xCenter - canvasXOrigin);
+    appleY = appleCell.y - (yCenter - canvasYOrigin);
+
+    if (boardLeft === -appleX && boardUp === -appleY) {
+        snek.snakeLength++;
+        hasApple = false;
+        currentScore = parseInt(document.getElementById('score').innerHTML) + 1;
+        document.getElementById('score').innerHTML = currentScore.toString();
+        appleCell.containsApple = false;
+    }
+
+    for (var i = 0; i < snek.previousPositions.length; i++) {
+        snek.previousPositions[i] = [snek.previousPositions[i][0] + snek.vx * magX, snek.previousPositions[i][1] + snek.vy * magY];
+    }
+
+    if(snek.vx === 0 && snek.vy == 1) {
+        // Down
+        snek.previousDir = [0,1]
+    } else if(snek.vx === 0 && snek.vy == -1) {
+        // Up
+        snek.previousDir = [0,-1]
+    } else if(snek.vx === -1 && snek.vy == 0) {
+        // Left
+        snek.previousDir = [-1,0]
+    } else if(snek.vx === 1 && snek.vy == 0) {
+        // Right
+        snek.previousDir = [1,0]
+    }
+
+}
+
+function checkIfDead() {
+    if(boardUp > (newCanvasHeight / 2) || boardUp < -(newCanvasHeight / 2)) {
+        deadSequence();
+    } else if (boardLeft > (newCanvasWidth / 2) || boardLeft < -(newCanvasWidth / 2)) {
+        deadSequence();
+    }
+}
+
+function deadSequence() {
+    dead = true;
+    exit();
+}
+
+function createApple() {
+    if(!hasApple) {
+        hasApple = true;
+        randX = Math.floor(Math.random() * (widthNumber));
+        randY = Math.floor(Math.random() * (heightNumber));
+        randomAppleCell = cellStorage[randX][randY];
+        randomAppleCell.containsApple = true;
+        appleCell = randomAppleCell;
+    }
 }
 
 function loop() {
-    update()
-    draw();
+        update();
+        draw();
 }
 
 function exit() {
@@ -178,4 +277,4 @@ draw();
 
 // Loop interval, game speed
 // in this case 200ms
-var intervalID = setInterval(loop,200);
+var intervalID = setInterval(loop,300);
