@@ -263,8 +263,8 @@ function createApple() {
 }
 
 function loop() {
-        update();
-        draw();
+    update();
+    draw();
 }
 
 function exit() {
