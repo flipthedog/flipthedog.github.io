@@ -4,7 +4,11 @@
   "private": true,
   "homepage": "https://flipthedog.github.io/website",
   "dependencies": {
+    "bootstrap": "^4.1.1",
     "gh-pages": "^2.0.1",
+    "jquery": "^3.4.1",
+    "npm": "^6.9.0",
+    "popper": "^1.0.1",
     "react": "^16.6.1",
     "react-dom": "^16.6.1",
     "react-scripts": "2.1.1"
