@@ -1,0 +1,53 @@
+name: Validate static content
+
+on:
+    push:
+        branches:
+            - main
+    pull_request:
+        branches:
+            - main
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    html:
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Checkout
+                uses: actions/checkout@v5
+            -   name: Install tidy
+                run: |
+                    sudo apt-get update
+                    sudo apt-get install -y tidy
+
+            -   name: Validate HTML
+                run: |
+                    set -e
+                    fail=0
+                    while IFS= read -r -d '' file; do
+                        echo "Checking $file"
+                        if ! tidy -q -errors "$file"; then
+                        fail=1
+                        fi
+                    done < <(find . -name "*.html" -print0)
+                    exit $fail
+
+    links:
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Checkout
+                uses: actions/checkout@v5
+
+            -   name: Check links in HTML files
+                uses: lycheeverse/lychee-action@v2
+                with:
+                    args: >
+                        --verbose
+                        --no-progress
+                        --max-concurrency 8
+                        **/*.html
+                env:
+                    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
